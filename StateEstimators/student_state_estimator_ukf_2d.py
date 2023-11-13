@@ -240,11 +240,14 @@ class UKFStateEstimator2D(object):
         else:
             self.initialize_input_time(data)
             # TODO: Got an initial range sensor reading, so update the initial state
-            # vector of the UKF
+            # vector of the UKF (adding 11/13):
+            self.ukf.x = np.array([0.0, 0.0]) #initialize z and z_dot to zero for now. **will need to change z later
             
             # TODO: initialize the state covariance matrix to reflect estimated
             # measurement error. Variance of the measurement -> variance of
-            # the corresponding state variable
+            # the corresponding state variable (adding 11/13):
+            range_variance = ... #**should be squared since covariance matrix contains variances along diagonal
+            self.ukf.P = np.array([[range_variance, 0], [0, 1e-6]]) #**replace data.range**2 with actual variance of range measurement once we have info?
             
             self.got_ir = True
             self.check_if_ready_to_filter()
