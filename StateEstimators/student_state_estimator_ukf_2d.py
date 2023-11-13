@@ -311,8 +311,19 @@ class UKFStateEstimator2D(object):
         returns: A NumPy array that is the prior state estimate. Array
                  dimensions must be the same as the state vector x.
         """
-        # TODO: Implement this method, following the math that you derived.
-        pass
+        #the current state components
+        z = x[0]  # Position along z-axis
+        z_dot = x[1]  # Velocity along z-axis
+        
+        # The control input is the acceleration along the z-axis
+        z_ddot = u[0]
+        
+        # Compute the new state using the constant acceleration kinematic equations
+        new_z = z + z_dot * dt + 0.5 * z_ddot * dt**2
+        new_z_dot = z_dot + z_ddot * dt
+        
+        # Return the new state as a NumPy array
+        return np.array([new_z, new_z_dot])
         
     def measurement_function(self, x):
         """
