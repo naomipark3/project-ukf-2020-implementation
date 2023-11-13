@@ -315,14 +315,14 @@ class UKFStateEstimator2D(object):
         z = x[0]  # Position along z-axis
         z_dot = x[1]  # Velocity along z-axis
         
-        # The control input is the acceleration along the z-axis
+        #the control input is the acceleration along the z-axis
         z_ddot = u[0]
         
-        # Compute the new state using the constant acceleration kinematic equations
+        #compute the new state using the constant acceleration kinematic equations
         new_z = z + z_dot * dt + 0.5 * z_ddot * dt**2
         new_z_dot = z_dot + z_ddot * dt
         
-        # Return the new state as a NumPy array
+        #return the new state as a NumPy array
         return np.array([new_z, new_z_dot])
         
     def measurement_function(self, x):
@@ -331,7 +331,12 @@ class UKFStateEstimator2D(object):
         
         x : current state. A NumPy array
         """
-        pass
+        H = np.array([[1,0]]) #extracts the position from the state vector
+
+        z = H @ x #calculate measurement estimate with "@" for matrix multiplication
+
+        return z
+    
         
     def start_loop(self):
         """
