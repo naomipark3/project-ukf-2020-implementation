@@ -1,0 +1,98 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage{amsmath} % for math stuff
+\usepackage{graphicx} % for inserting graphics
+\usepackage{xcolor} % for text coloring
+
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{#1}}}
+
+\title{UKF with 2D State Vector}
+\author{}
+\date{\today}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\maketitle
+
+\section{Design}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{State Vector}
+
+\begin{equation}
+  \mathbf{x}_t=\begin{bmatrix}
+  z \\
+  \dot z
+  \end{bmatrix}
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Prediction Step}
+
+\subsubsection{Control Input}
+
+\begin{equation}
+  \mathbf{u}_t = \begin{bmatrix}
+  \ddot z
+  \end{bmatrix}
+\end{equation}
+
+\subsubsection{State Transition Function}
+
+\begin{equation}
+  g(\mathbf{x}_{t-\Delta t}, \mathbf{u}_t, \Delta t) = \begin{bmatrix}
+  \todo{?} & \todo{?} \\
+  \todo{?} & \todo{?}
+\end{bmatrix}\mathbf{x}_{t-\Delta t} + \begin{bmatrix}
+  \todo{?} \\
+  \todo{?}
+  \end{bmatrix}\mathbf{u}_t
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Measurement Update Step}
+
+\subsubsection{Measurement Vector}
+
+\begin{equation}
+  \mathbf{z}_t = \begin{bmatrix}
+  r
+  \end{bmatrix}
+\end{equation}
+
+\subsubsection{Measurement Function}
+
+\begin{equation}
+  h(\mathbf{\bar x}_t) = \begin{bmatrix}
+  \todo{?} & \todo{?}
+  \end{bmatrix}\mathbf{\bar x}_t
+\end{equation}
+
+\subsubsection{Measurement Covariance Matrix}
+
+Populate the measurement covariance matrix $\mathbf{R}_t$ with a reasonable value for the variance $\sigma^2_r$ of the range reading $r$.
+
+\begin{equation}
+  \mathbf{R}_t = \begin{bmatrix}
+  \todo{?}
+  \end{bmatrix}
+\end{equation}
+
+\noindent \todo{Your histogram image here}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Implementation}
+
+\subsection{Initializing $\dot z$}
+\todo{Your answer here}
+
+\subsection{Consecutive Predictions vs. Updates}
+\todo{Your answer here}
+
+\subsection{Comparison of UKF to EMA Filter}
+\todo{Your answer and Height Readings chart image here}
+
+
+\end{document}
