@@ -158,6 +158,21 @@ class UKFStateEstimator2D(object):
         # Ensure dt isn't negative (this might result if different nodes keep time slightly differently)
 
         #TODO: Set self.last_state_transition_time to the current time at which we just received an input
+    
+        current_time_secs = msg.header.stamp.secs
+        current_time_nsecs = msg.header.stamp.nsecs
+        current_time = current_time_secs + current_time_nsecs*1e-9
+        
+        if self.last_state_transition_time is not None:
+            self.dt = current_time - self.last_state_transition_time
+            # Ensure dt isn't negative
+            if self.dt < 0:
+                rospy.logwarn("Negative dt encountered. Time stamps out of sync.")
+                self.dt = 0
+        else:
+            self.dt = 0  # No previous time, so dt is 0
+        
+        self.last_state_transition_time = current_time
 
         
     def initialize_input_time(self, msg):
@@ -218,7 +233,7 @@ class UKFStateEstimator2D(object):
         else:
             self.ukf.Q = np.diag([0.01, 1.0])*0.005
         self.in_callback = False
-        self.publish_current_state()
+        #self.publish_current_state()
                         
     def ir_data_callback(self, data):
         """
@@ -253,7 +268,7 @@ class UKFStateEstimator2D(object):
             self.got_ir = True
             self.check_if_ready_to_filter()
         self.in_callback = False
-        self.publish_current_state()
+        #self.publish_current_state()
             
     def check_if_ready_to_filter(self):
         self.ready_to_filter = self.got_ir
@@ -349,7 +364,20 @@ class UKFStateEstimator2D(object):
         estimate at the end of each loop.
         """
         rate = rospy.Rate(self.loop_hz)
-        #TODO: Implement this method.
+
+        while not rospy.is_shutdown():
+            # Perform the prediction step
+            if self.ready_to_filter and self.dt > 0:  # Ensure dt is positive and we're ready to filter
+                self.ukf_predict()
+                # Now, let's assume you have a method to update the UKF with measurements
+                # For example:
+                # self.ukf_update(self.last_measurement_vector)
+    
+            # Publish the current state
+            self.publish_current_state()
+            
+            # Wait until the next cycle
+            rate.sleep()
 
 def check_positive_float_duration(val):
     """
