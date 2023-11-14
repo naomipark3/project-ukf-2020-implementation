@@ -143,7 +143,7 @@ class UKFStateEstimator2D(object):
         # TODO: Initialize the measurement covariance matrix R
         # with range variance (m^2), determined experimentally in a static
         # setup with mean range around 0.335 m:
-        self.ukf.R = np.array([?])
+        self.ukf.R = np.array([0.01])
         
     def update_input_time(self, msg):
         """
@@ -218,6 +218,7 @@ class UKFStateEstimator2D(object):
         else:
             self.ukf.Q = np.diag([0.01, 1.0])*0.005
         self.in_callback = False
+        self.publish_current_state()
                         
     def ir_data_callback(self, data):
         """
@@ -241,17 +242,18 @@ class UKFStateEstimator2D(object):
             self.initialize_input_time(data)
             # TODO: Got an initial range sensor reading, so update the initial state
             # vector of the UKF (adding 11/13):
-            self.ukf.x = np.array([0.0, 0.0]) #initialize z and z_dot to zero for now. **will need to change z later
+            self.ukf.x = np.array([tof_height, 0.0]) #initialize z and z_dot to zero for now. **will need to change z later
             
             # TODO: initialize the state covariance matrix to reflect estimated
             # measurement error. Variance of the measurement -> variance of
             # the corresponding state variable (adding 11/13):
-            range_variance = ... #**should be squared since covariance matrix contains variances along diagonal
-            self.ukf.P = np.array([[range_variance, 0], [0, 1e-6]]) #**replace data.range**2 with actual variance of range measurement once we have info?
+            range_variance = 0.01 #is already squared -- found from ir_data.txt
+            self.ukf.P[0,0] = range_variance
             
             self.got_ir = True
             self.check_if_ready_to_filter()
         self.in_callback = False
+        self.publish_current_state()
             
     def check_if_ready_to_filter(self):
         self.ready_to_filter = self.got_ir
