@@ -225,7 +225,11 @@ class UKFStateEstimator2D(object):
         # save imu orientation to compensate range measurement for pitch and roll
         self.imu_orientation = data.orientation
 
-        self.last_control_input = ? #TODO handle the control input from the IMU
+        ax = data.linear_acceleration.x
+        ay = data.linear_acceleration.y
+        az = data.linear_acceleration.z
+
+        self.last_control_input = np.array([ax, ay, az])
 
         if abs(data.linear_acceleration.z) < 0.3:
             # Adaptive filtering. Lower the process noise if acceleration is low
