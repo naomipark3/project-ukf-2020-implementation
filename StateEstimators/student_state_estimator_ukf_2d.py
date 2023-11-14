@@ -357,27 +357,29 @@ class UKFStateEstimator2D(object):
 
         return z
     
-        
     def start_loop(self):
         """
         Begin the UKF's loop of predicting and updating. Publish a state
         estimate at the end of each loop.
         """
         rate = rospy.Rate(self.loop_hz)
-
         while not rospy.is_shutdown():
-            # Perform the prediction step
-            if self.ready_to_filter and self.dt > 0:  # Ensure dt is positive and we're ready to filter
-                self.ukf_predict()
-                # Now, let's assume you have a method to update the UKF with measurements
-                # For example:
-                # self.ukf_update(self.last_measurement_vector)
+            # Check if the UKF is ready to filter
+            if self.ready_to_filter:
+                # Perform the prediction step if we have a positive dt
+                if self.dt and self.dt > 0:  
+                    self.ukf_predict()
+                    # Assume you have a method to update the UKF with measurements
+                    # self.ukf_update(self.last_measurement_vector)
+                # Publish the current state
+                self.publish_current_state()
+            else:
+                # If not ready to filter, log a message and possibly perform other necessary actions
+                rospy.loginfo("Waiting for initial measurements to start filtering.")
     
-            # Publish the current state
-            self.publish_current_state()
-            
-            # Wait until the next cycle
+            # Sleep for the remainder of the loop rate
             rate.sleep()
+
 
 def check_positive_float_duration(val):
     """
