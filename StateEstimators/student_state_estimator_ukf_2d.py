@@ -357,7 +357,7 @@ class UKFStateEstimator2D(object):
         """
         H = np.array([[1,0]]) #extracts the position from the state vector
 
-        z = H @ x #calculate measurement estimate with "@" for matrix multiplication
+        z = np.dot(H, x) #calculate measurement estimate with "@" for matrix multiplication
 
         return z
     
