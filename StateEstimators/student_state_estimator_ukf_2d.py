@@ -386,6 +386,7 @@ class UKFStateEstimator2D(object):
                 self.ukf.update(self.last_measurement_vector)
                 # Publish the current state
                 self.publish_current_state()
+                self.got_ir = False
             else:
                 # If not ready to filter, log a message and possibly perform other necessary actions
                 rospy.loginfo("Waiting for initial measurements to start filtering.")
