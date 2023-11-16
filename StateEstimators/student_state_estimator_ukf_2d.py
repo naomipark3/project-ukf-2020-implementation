@@ -242,13 +242,13 @@ class UKFStateEstimator2D(object):
         """
         Handle the receipt of a Range message from the IR sensor.
         """
-        print("reaching callback function")
+        #print("reaching callback function")
         # try:
         if self.in_callback:
             return
         self.in_callback = True
 
-        print("in try")
+        #print("in try")
     
         # get the roll and pitch to compensate for the drone's tilt
         r,p,_ = self.get_r_p_y()
