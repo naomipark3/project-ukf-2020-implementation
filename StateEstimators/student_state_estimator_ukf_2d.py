@@ -244,43 +244,43 @@ class UKFStateEstimator2D(object):
         Handle the receipt of a Range message from the IR sensor.
         """
         print("reaching callback function")
-        try:
-            if self.in_callback:
-                return
-            self.in_callback = True
+        # try:
+        if self.in_callback:
+            return
+        self.in_callback = True
 
-            print("in try")
+        print("in try")
     
-            # get the roll and pitch to compensate for the drone's tilt
-            r,p,_ = self.get_r_p_y()
-            # the z-position of the drone which is calculated by multiplying the
-            # the range reading by the cosines of the roll and pitch
-            tof_height = data.range*np.cos(r)*np.cos(p)
+        # get the roll and pitch to compensate for the drone's tilt
+        r,p,_ = self.get_r_p_y()
+        # the z-position of the drone which is calculated by multiplying the
+        # the range reading by the cosines of the roll and pitch
+        tof_height = data.range*np.cos(r)*np.cos(p)
     
-            self.last_measurement_vector = np.array([tof_height])
+        self.last_measurement_vector = np.array([tof_height])
     
-            if self.ready_to_filter:
-                self.update_input_time(data)
-            else:
-                self.initialize_input_time(data)
-                # TODO: Got an initial range sensor reading, so update the initial state
-                # vector of the UKF (adding 11/13):
-                self.ukf.x = np.array([tof_height, 0.0]) #initialize z and z_dot to zero for now. **will need to change z later
+        if self.ready_to_filter:
+            self.update_input_time(data)
+        else:
+            self.initialize_input_time(data)
+            # TODO: Got an initial range sensor reading, so update the initial state
+            # vector of the UKF (adding 11/13):
+            self.ukf.x = np.array([tof_height, 0.0]) #initialize z and z_dot to zero for now. **will need to change z later
                 
-                # TODO: initialize the state covariance matrix to reflect estimated
-                # measurement error. Variance of the measurement -> variance of
-                # the corresponding state variable (adding 11/13):
-                range_variance = 0.01 #is already squared -- found from ir_data.txt; this is the value that you would tune to get rid of the noise
-                self.ukf.P[0,0] = range_variance
+            # TODO: initialize the state covariance matrix to reflect estimated
+            # measurement error. Variance of the measurement -> variance of
+            # the corresponding state variable (adding 11/13):
+            range_variance = 0.01 #is already squared -- found from ir_data.txt; this is the value that you would tune to get rid of the noise
+            self.ukf.P[0,0] = range_variance
                 
-                self.got_ir = True
-                self.check_if_ready_to_filter()
-            self.in_callback = False
-            #self.publish_current_state()
+            self.got_ir = True
+            self.check_if_ready_to_filter()
+        self.in_callback = False
+        #self.publish_current_state()
         
-        except Exception as e:
-            print("in catch")
-            print("Exception: ", e)
+        # except Exception as e:
+        #     print("in catch")
+        #     print("Exception: ", e)
             
         
             
@@ -381,10 +381,9 @@ class UKFStateEstimator2D(object):
             # Check if the UKF is ready to filter
             if self.ready_to_filter:
                 # Perform the prediction step if we have a positive dt
-                if self.dt and self.dt > 0:  
-                    self.ukf_predict()
-                    # Assume you have a method to update the UKF with measurements
-                    # self.ukf_update(self.last_measurement_vector)
+                #if self.dt and self.dt > 0:  
+                self.ukf_predict()
+                self.ukf.update(self.last_measurement_vector)
                 # Publish the current state
                 self.publish_current_state()
             else:
