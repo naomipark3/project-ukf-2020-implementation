@@ -266,7 +266,7 @@ class UKFStateEstimator2D(object):
             # TODO: initialize the state covariance matrix to reflect estimated
             # measurement error. Variance of the measurement -> variance of
             # the corresponding state variable (adding 11/13):
-            range_variance = 0.01 #is already squared -- found from ir_data.txt
+            range_variance = 0.01 #is already squared -- found from ir_data.txt; this is the value that you would tune to get rid of the noise
             self.ukf.P[0,0] = range_variance
             
             self.got_ir = True
