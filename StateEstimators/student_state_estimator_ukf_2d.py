@@ -275,8 +275,8 @@ class UKFStateEstimator2D(object):
             self.in_callback = False
             #self.publish_current_state()
         
-        catch:
-            traceback.print_exc(except Exception as inst: limit=None, file=None, chain=True)
+        except Exception as e:
+            print("Exception: ", e)
             
         
             
