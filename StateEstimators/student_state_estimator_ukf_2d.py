@@ -345,18 +345,25 @@ class UKFStateEstimator2D(object):
                  dimensions must be the same as the state vector x.
         """
         #the current state components
-        z = x[0]  # Position along z-axis
-        z_dot = x[1]  # Velocity along z-axis
+        # z = x[0]  # Position along z-axis
+        # z_dot = x[1]  # Velocity along z-axis
         
-        #the control input is the acceleration along the z-axis
-        z_ddot = u[0]
+        # #the control input is the acceleration along the z-axis
+        # z_ddot = u[0]
         
-        #compute the new state using the constant acceleration kinematic equations
-        new_z = z + z_dot * dt + 0.5 * z_ddot * dt**2
-        new_z_dot = z_dot + z_ddot * dt
+        # #compute the new state using the constant acceleration kinematic equations
+        # new_z = z + z_dot * dt + 0.5 * z_ddot * dt**2
+        # new_z_dot = z_dot + z_ddot * dt
         
         #return the new state as a NumPy array
-        return np.array([new_z, new_z_dot])
+        # return np.array([new_z, new_z_dot])
+        
+        matrix_1 = np.array([[1, dt], [0, 1]])
+        matrix_2 = np.array([dt, 0])
+
+        change = np.array([0, u[0] * dt])
+
+        return np.dot(matrix_1, x) + change
         
     def measurement_function(self, x):
         """
