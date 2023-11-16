@@ -163,14 +163,13 @@ class UKFStateEstimator2D(object):
         current_time_nsecs = msg.header.stamp.nsecs
         current_time = current_time_secs + current_time_nsecs*1e-9
         
-        if self.last_state_transition_time is not None:
-            self.dt = current_time - self.last_state_transition_time
-            # Ensure dt isn't negative
-            if self.dt < 0:
-                rospy.logwarn("Negative dt encountered. Time stamps out of sync.")
-                self.dt = 0
-        else:
-            self.dt = 0  # No previous time, so dt is 0
+        self.dt = current_time - self.last_state_transition_time
+        # Ensure dt isn't negative
+        if self.dt < 0:
+            rospy.logwarn("Negative dt encountered. Time stamps out of sync.")
+            self.dt = 0
+        # else:
+        #     self.dt = 0  # No previous time, so dt is 0
         
         self.last_state_transition_time = current_time
 
