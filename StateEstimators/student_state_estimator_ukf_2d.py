@@ -258,7 +258,8 @@ class UKFStateEstimator2D(object):
     
         self.last_measurement_vector = np.array([tof_height])
     
-        if self.ready_to_filter:
+        #if self.ready_to_filter:
+        if True:
             print("reaching update input time")
             self.update_input_time(data)
         else:
