@@ -159,7 +159,7 @@ class UKFStateEstimator2D(object):
 
         #TODO: Set self.last_state_transition_time to the current time at which we just received an input
     
-        current_time_secs = msg.header.stamp.secs
+        current_time_secs = msg.header.stamp.secs #if i made this an instance variable, how would I initialize it? would I change it's value anywhere else?
         current_time_nsecs = msg.header.stamp.nsecs
         current_time = current_time_secs + current_time_nsecs*1e-9
         
