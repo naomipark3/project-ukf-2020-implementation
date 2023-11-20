@@ -159,17 +159,15 @@ class UKFStateEstimator2D(object):
 
         #TODO: Set self.last_state_transition_time to the current time at which we just received an input
     
-        current_time_secs = msg.header.stamp.secs #if i made this an instance variable, how would I initialize it? would I change it's value anywhere else?
-        current_time_nsecs = msg.header.stamp.nsecs
-        current_time = current_time_secs + current_time_nsecs*1e-9
+        self.last_time_secs = msg.header.stamp.secs #if i made this an instance variable, how would I initialize it? would I change it's value anywhere else?
+        self.last_time_nsecs = msg.header.stamp.nsecs
+        current_time = self.last_time_secs + self.last_time_nsecs*1e-9
         
         self.dt = current_time - self.last_state_transition_time
         # Ensure dt isn't negative
         if self.dt < 0:
             rospy.logwarn("Negative dt encountered. Time stamps out of sync.")
             self.dt = 0
-        # else:
-        #     self.dt = 0  # No previous time, so dt is 0
         
         self.last_state_transition_time = current_time
 
