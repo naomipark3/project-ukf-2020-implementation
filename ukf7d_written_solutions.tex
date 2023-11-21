@@ -49,9 +49,36 @@ We define a control input $\mathbf{u}$ populated by linear accelerations from th
 The linear accelerations are in the drone's body frame, so we need to rotate these vectors into the global frame based on the yaw variable that we are tracking and the roll and pitch values from the IMU as well. This transformation will occur in the state transition function.
 
 \subsubsection{State Transition Function}
-
+We first note that the rotation from the body frame to the global frame can be achieved by a rotation matrix $R(\psi)$ that is dependent on the yaw angle $\psi$. For simplicity, let us consider only the yaw angle so that the rotation matrix looks like something along the lines of this: \\ \\
 \begin{equation}
-  g(\mathbf{x}_{t-\Delta t}, \mathbf{u}_t, \Delta t) = \todo{?}
+R(\psi) =
+\begin{bmatrix}
+cos(\psi) & -sin(\psi) & 0 \\
+sin(\psi) & cos(\psi) & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\end{equation}
+At this point, we can apply this rotation in the acceleration in the body frame to get the acceleration in the global frame: \\
+\begin{equation}
+\begin{bmatrix}
+\ddot x \\
+\ddot y \\
+\ddot z
+\end{bmatrix}  = R(\psi)\mathbf{u_t}
+\end{equation}. At this point, we can use kinematics to construct the state transition function considering that the change in position is the velocity times the change in $\Delta t$, and the change in velocity is the change in acceleration times the change  in $\Delta t$. We get the yaw rate from the camera. So, knowing that our state transition function $g$ predicts the next state $\mathbf{x_t}$ based on the previous state, control inputs, and elapsed time, we can write the state transition function 
+\begin{equation}
+  g(\mathbf{x}_{t-\Delta t}, \mathbf{u}_t, \Delta t)
+\end{equation} as: \\
+\begin{equation}
+    \mathbf{x_t} = \mathbf{x_t - \Delta t} + \begin{bmatrix}
+    \dot x \\
+    \dot y \\
+    \dot z \\
+    \ddot x \\
+    \ddot y \\
+    \ddot z \\
+    \psi_{\textit{camera}}
+\end{bmatrix}
 \end{equation}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -71,15 +98,51 @@ y \\
 \end{equation}
 
 \subsubsection{Measurement Function}
+We know from section \textbf{1.2} that our state vector is defined as: \begin{equation}
+    \mathbf{x_t} = \mathbf{x_t - \Delta t} + \begin{bmatrix}
+    \dot x \\
+    \dot y \\
+    \dot z \\
+    \ddot x \\
+    \ddot y \\
+    \ddot z \\
+    \psi_{\textit{camera}}
+\end{bmatrix}
+\end{equation}. Using our state vector $x_t$, we can define $h(\mathbf{x_t})$ to map from the state space to the measurement space as follows: 
+\begin{equation}
+    h(\mathbf{x_t}) = \begin{bmatrix}
+    h_1(\mathbf{x_t}) \\
+    h_2(\mathbf{x_t}) \\
+    h_3(\mathbf{x_t}) \\
+    h_4(\mathbf{x_t}) \\
+    h_5(\mathbf{x_t}) \\
+    h_6(\mathbf{x_t})
+\end{bmatrix}
+\end{equation} where $h_1(x_t)$ is the slant range $r$, which can be calculated from the altitude $z$ and the angles $\phi$ and $\theta$, knowing that the ToF sensor is oriented downwards: $h_1(x_t) = \sqrt{z^2/(cos(\theta)^2cos(\phi)^2)}$, $h_2(x_t)$ and $h_3(x_t)$ are the x and y positions from the state vector, $h_4(x_t)$ and $h_5(x_t)$ are the velocities $\dot x, \dot y$, and $h_6(x_t)$ is the yaw estimate from the drone's camera $\psi_\textit{camera}$. \\ \\
+As a result, this means that our measurement function is: \\
 
 \begin{equation}
-  h(\mathbf{\bar x}_t) = \todo{?}
+  h(\mathbf{\bar x}_t) = \begin{bmatrix}
+\sqrt{z^2/(cos(\theta)^2cos(\phi)^2)} \\
+x \\
+y \\
+\dot x \\
+\dot y \\
+\psi
+  \end{bmatrix}
 \end{equation}
 
 \subsubsection{Measurement Covariance Matrix}
-
+Let us assume that we have the following measurements: ToF slant range reading variance $\sigma_r^2$, x and y planar position estimates variances $\sigma_x^2$ and $\sigma_y^2$, variances of the x and y velocities $\sigma_{\dot x}^2$ and $\sigma_{\dot y}^2$, and the variance of the yaw estimate from the camera $\sigma^2_{psi_\textit{camera}}$. Then, our measurement covariance matrix $R_t$ would look like:
 \begin{equation}
-  \mathbf{R}_t = \todo{?}
+\mathbf{R_t} = \begin{bmatrix}
+\sigma_r^2 & 0 & 0 & 0 & 0 & 0 \\
+0 & \sigma_x^2 & 0 & 0 & 0 & 0 \\
+0 & 0 & \sigma_y^2 & 0 & 0 & 0 \\
+0 & 0 & 0 & \sigma_{\dot{x}}^2 & 0 & 0 \\
+0 & 0 & 0 & 0 & \sigma_{\dot{y}}^2 & 0 \\
+0 & 0 & 0 & 0 & 0 & \sigma_{\psi_{\text{camera}}}^2 \\
+\end{bmatrix}
 \end{equation}
 
 \end{document}
