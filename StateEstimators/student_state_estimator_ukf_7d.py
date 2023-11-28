@@ -321,8 +321,8 @@ class UKFStateEstimator7D(object):
             # TODO: store relevant values upon recept of a measurement from
             #       the camera's optical flow
             #assuming that the linear velocities are in the twist.linear field:
-            self.last_measurement_vector[3] = data.twist.twist.linear.x
-            self.last_measurement_vector[4] = data.twist.twist.linear.y
+            self.last_measurement_vector[3] = data.twist.linear.x
+            self.last_measurement_vector[4] = data.twist.linear.y
 
             # Now that a prediction has been formed to bring the current
             # prior state estimate to the same point in time as the measurement,
@@ -332,8 +332,8 @@ class UKFStateEstimator7D(object):
             self.initialize_input_time(data)
             # TODO: Update the initial state vector of the UKF
             # Assuming zero initial velocities if we have not started filtering yet
-            self.ukf.x[3] = data.twist.twist.linear.x
-            self.ukf.x[4] = data.twist.twist.linear.y
+            self.ukf.x[3] = data.twist.linear.x
+            self.ukf.x[4] = data.twist.linear.y
         
             # TODO: Initialize the state covariance matrix to reflect
             # estimated measurement error. Variance of the measurement
@@ -434,7 +434,7 @@ class UKFStateEstimator7D(object):
         # estimate from the UKF (informed by measurements from
         # camera_pose_data_callback) and the roll and pitch values directly from
         # the IMU, as the IMU implements its own filter on attitude:
-        quaternion = tf.transformations.quaternion_from_euler(r, p, self.ukf.x[6])
+        quaternion = tf.transformations.quaternion_from_euler(r, p, self.ukf.x[6]) #**needs to call camera_pose_data_callback
         
         # Get the current state estimate from self.ukf.x
         state_msg.pose_with_covariance.pose.position.x = self.ukf.x[0]
