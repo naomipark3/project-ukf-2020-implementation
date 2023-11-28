@@ -434,6 +434,16 @@ class UKFStateEstimator7D(object):
         # estimate from the UKF (informed by measurements from
         # camera_pose_data_callback) and the roll and pitch values directly from
         # the IMU, as the IMU implements its own filter on attitude:
+            # Get the roll, pitch from the IMU and yaw from the UKF's state vector
+        r, p, _ = self.get_r_p_y()  # IMU's roll and pitch
+        _, _, y = tf.transformations.euler_from_quaternion([
+            self.imu_orientation.x,
+            self.imu_orientation.y,
+            self.imu_orientation.z,
+            self.imu_orientation.w
+        ])
+        yaw = self.ukf.x[6]  # Yaw from UKF state vector
+
         quaternion = tf.transformations.quaternion_from_euler(r, p, self.ukf.x[6]) #**needs to call camera_pose_data_callback
         
         # Get the current state estimate from self.ukf.x
