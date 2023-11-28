@@ -600,6 +600,7 @@ class UKFStateEstimator7D(object):
                 # IR range reading
                 self.ukf.update(self.last_measurement_vector)
                 self.publish_current_state()
+                print("publishing values")
             rate.sleep()
         
         
