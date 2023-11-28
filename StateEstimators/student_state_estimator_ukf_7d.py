@@ -256,9 +256,9 @@ class UKFStateEstimator7D(object):
 
         # TODO:  # extract accelerations from data
         self.last_control_input = np.array([
-        linear_acceleration.x,
-        linear_acceleration.y,
-        linear_acceleration.z])
+        data.linear_acceleration.x,
+        data.linear_acceleration.y,
+        data.linear_acceleration.z])
         
         self.angular_velocity = data.angular_velocity
         if not self.ready_to_filter:
