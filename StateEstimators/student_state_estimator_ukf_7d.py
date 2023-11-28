@@ -155,7 +155,7 @@ class UKFStateEstimator7D(object):
         """
         # Initialize state covariance matrix P:
         # TODO: Initialize the state covariance matrix P
-        self.ukf.P = np.diag([0.1, 0.1, 0.1, 0.01, 0.01, 0.01, 0.001])
+        self.ukf.P = np.diag([0.1, 0.1, 0.1, 0.2, 0.2, 0.2, 0.0005])
         
         # Initialize the process noise covariance matrix Q:
         # TODO: Tune appropriately. Currently just a guess
