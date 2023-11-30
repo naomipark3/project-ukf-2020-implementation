@@ -174,7 +174,7 @@ class UKFStateEstimator7D(object):
         # Estimated standard deviation of 5 cm = 0.05 m ->
         # variance of 0.05^2 = 0.0025
         self.measurement_cov_camera_pose = np.diag([0.0025, 0.0025, 0.0003])
-        self.ukf.R = np.diag([2.2221e-05, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
+        self.ukf.R = np.diag([0.01, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
                 
     def update_input_time(self, msg):
         """
