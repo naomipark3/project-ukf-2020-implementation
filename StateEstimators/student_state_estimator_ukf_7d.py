@@ -155,7 +155,7 @@ class UKFStateEstimator7D(object):
         """
         # Initialize state covariance matrix P:
         # TODO: Initialize the state covariance matrix P
-        self.ukf.P = np.diag([0.1, 0.1, 0.1, 0.2, 0.2, 0.2, 0.0005])
+        self.ukf.P = np.diag([0.1, 0.1, 0.1, 0.15, 0.15, 0.15, 0.0005])
         
         # Initialize the process noise covariance matrix Q:
         # TODO: Tune appropriately. Currently just a guess
@@ -167,14 +167,7 @@ class UKFStateEstimator7D(object):
         #       can attempt to estimate the covariances between different sensor
         #       quantities, or you can choose to simply set the sensor variances
         #       (i.e., the diagonals of the matrix).
-        self.ukf.R = np.diag([
-        0.01,  # range variance (m^2)
-        0.05**2,     # x position variance (m^2)
-        0.05**2,     # y position variance (m^2)
-        0.01**2,     # x velocity variance (m^2/s^2)
-        0.01**2,     # y velocity variance (m^2/s^2)
-        0.005**2     # yaw variance (rad^2)
-        ])
+        self.ukf.R = np.diag([0.010024929458961038, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
         # TODO: range variance (m^2), determined experimentally in a static
         # setup with mean range around 0.335 m:
         self.measurement_cov_ir = np.array([0.01])
@@ -290,15 +283,15 @@ class UKFStateEstimator7D(object):
             # Got a new range reading.
             # TODO: so update the initial state vector of the UKF
             self.ukf.x[2] = tof_height
-            self.ukf.x[3] = 0  # initialize velocity as 0 m/s
+            self.ukf.x[5] = 0.0  # initialize velocity as 0 m/s
             #set 3, 4, and 5 to zero:
-            self.ukf.x[4] = 0
-            self.ukf.x[5] = 0
+            # self.ukf.x[4] = 0
+            # self.ukf.x[5] = 0
             
             # TODO: Update the state covariance matrix to reflect estimated
             # measurement error. Variance of the measurement -> variance of
             # the corresponding state variable
-            self.ukf.P[2, 2] = self.measurement_cov_ir
+            self.ukf.P[2, 2] = self.measurement_cov_ir[0]
             
             self.got_ir = True
             self.check_if_ready_to_filter()
@@ -390,7 +383,7 @@ class UKFStateEstimator7D(object):
             self.last_measurement_vector[5] = yaw
 
             # Perform a measurement update with the most recent camera pose reading:
-            self.ukf.update(self.last_measurement_vector)
+            # self.ukf.update(self.last_measurement_vector)
         else:
             self.initialize_input_time(data)
             # TODO: Update the initial state vector of the UKF
@@ -435,16 +428,17 @@ class UKFStateEstimator7D(object):
         # camera_pose_data_callback) and the roll and pitch values directly from
         # the IMU, as the IMU implements its own filter on attitude:
             # Get the roll, pitch from the IMU and yaw from the UKF's state vector
-        r, p, _ = self.get_r_p_y()  # IMU's roll and pitch
-        _, _, y = tf.transformations.euler_from_quaternion([
-            self.imu_orientation.x,
-            self.imu_orientation.y,
-            self.imu_orientation.z,
-            self.imu_orientation.w
-        ])
+        
+        # r, p, _ = self.get_r_p_y()  # IMU's roll and pitch
+        # _, _, y = tf.transformations.euler_from_quaternion([
+        #     self.imu_orientation.x,
+        #     self.imu_orientation.y,
+        #     self.imu_orientation.z,
+        #     self.imu_orientation.w
+        # ])
         yaw = self.ukf.x[6]  # Yaw from UKF state vector
 
-        quaternion = tf.transformations.quaternion_from_euler(r, p, self.ukf.x[6]) #**needs to call camera_pose_data_callback
+        quaternion = tf.transformations.quaternion_from_euler(0.0, 0.0, self.ukf.x[6]) #**needs to call camera_pose_data_callback
         
         # Get the current state estimate from self.ukf.x
         state_msg.pose_with_covariance.pose.position.x = self.ukf.x[0]
@@ -501,18 +495,32 @@ class UKFStateEstimator7D(object):
         # quaternion is represented as a 4-element vector [x,y,z,w], where x, y,
         # and z are the imaginary components, and w is the real component.
         # Assuming roll, pitch from the IMU are accessible as r, p
-        r, p, _ = self.get_r_p_y()
-        # Convert yaw, pitch, and roll to a quaternion
-        q = tf.transformations.quaternion_from_euler(r, p, yaw)
-        # Convert the original vector to a quaternion with a zero w component
-        v = np.array([original_vector[0], original_vector[1], original_vector[2], 0])
-        # Compute the conjugate of the quaternion
-        q_conjugate = tf.transformations.quaternion_conjugate(q)
-        # Perform the quaternion multiplication
-        v_rotated = tf.transformations.quaternion_multiply(
-            tf.transformations.quaternion_multiply(q, v), q_conjugate)
-        # Return the x, y, z components of the rotated vector
-        return v_rotated[:3]
+        
+        # r, p, _ = self.get_r_p_y()
+        # # Convert yaw, pitch, and roll to a quaternion
+        # q = tf.transformations.quaternion_from_euler(r, p, yaw)
+        # # Convert the original vector to a quaternion with a zero w component
+        # v = np.array([original_vector[0], original_vector[1], original_vector[2], 0])
+        # # Compute the conjugate of the quaternion
+        # q_conjugate = tf.transformations.quaternion_conjugate(q)
+        # # Perform the quaternion multiplication
+        # v_rotated = tf.transformations.quaternion_multiply(
+        #     tf.transformations.quaternion_multiply(q, v), q_conjugate)
+        # # Return the x, y, z components of the rotated vector
+        # return v_rotated[:3]
+
+        quaternion = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)
+        quaternion_list = list(quaternion)
+
+        quaternion_list[3] = -quaternion_list[3]
+        orig_vector_quaternion = list(original_vector)
+        orig_vector_quaternion.append(0.0)
+
+        product = tf.transformations.quaternion_multiply(quaternion_list, orig_vector_quaternion)
+        conj = tf.transformations.quaternion_conjugate(quaternion_list)
+        rotated = tf.transformations.quaternion_multiply(product, conj)
+
+        return rotated[:3]
 
     def state_transition_function(self, x, dt, u):
         """
@@ -540,15 +548,11 @@ class UKFStateEstimator7D(object):
         # State transition logic: 
         # New position is old position plus velocity times dt plus 0.5 times acceleration times dt squared
         # New velocity is old velocity plus acceleration times dt
-        new_pos = pos + vel * dt + 0.5 * acc_global * dt**2
-        new_vel = vel + acc_global * dt
+        dt_2 = dt**2.0
 
-        # Assuming yaw rate is available as self.angular_velocity.z
-        new_yaw = yaw + self.angular_velocity.z * dt
+        state_arr = np.array([x[3] * dt + 0.5*acc_global[0]*dt_2, x[4] * dt + 0.5*acc_global[1]*dt_2, x[5] * dt + 0.5*acc_global[2]*dt_2, acc_global[0]*dt_2, acc_global[1]*dt_2, acc_global[2]*dt_2, 0.0])
 
-        # Combine the updated components to form the new state
-        new_state = np.hstack((new_pos, new_vel, new_yaw))
-        return new_state
+        return x + state_arr
         
     def measurement_function(self, x):
         """
@@ -565,23 +569,17 @@ class UKFStateEstimator7D(object):
         # For the slant range, we're assuming it's directly measured as the z position
         # If your ToF sensor measures the slant range at an angle, you'll need to
         # adjust this to account for the sensor's orientation relative to the drone's body
-        slant_range = x[2]  # Directly taking the z position as the slant range
+        #slant_range = x[2]  # Directly taking the z position as the slant range
         
         # The position measurements are directly the x and y states
-        x_pos = x[0]
-        y_pos = x[1]
+        h = np.array([[0, 0, 1, 0, 0, 0, 0],
+                     [1, 0, 0, 0, 0, 0, 0]
+                     [0, 1, 0, 0, 0, 0, 0]
+                     [0, 0, 0, 1, 0, 0, 0]
+                     [0, 0, 0, 0, 1, 0, 0]
+                     [0, 0, 0, 0, 0, 0, 1]])
         
-        # The velocity measurements are directly the x and y velocities
-        x_vel = x[3]
-        y_vel = x[4]
-        
-        # The yaw measurement is directly the yaw state
-        yaw = x[6]
-        
-        # Construct the measurement vector
-        z = np.array([slant_range, x_pos, y_pos, x_vel, y_vel, yaw])
-        
-        return z
+        return np.dot(h, x)
 
     def start_loop(self):
         """
