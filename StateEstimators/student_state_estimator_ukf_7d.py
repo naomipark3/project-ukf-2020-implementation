@@ -29,6 +29,9 @@ class UKFStateEstimator7D(object):
     (UKF) applied to raw sensor data. The filter tracks 7 state variables to
     estimate aspects of the drone's pose and twist in three-dimensional space.
     """
+    # TODO: Make a reference to the UKF math document that is being written up,
+    #       once it is in a complete enough state and can be placed in a shared
+    #       location.
     
     def __init__(self, loop_hz, ir_throttled=False, imu_throttled=False, optical_flow_throttled=False, camera_pose_throttled=False):
         # self.ready_to_filter is False until we get initial measurements in
@@ -154,29 +157,24 @@ class UKFStateEstimator7D(object):
         Initialize the covariance matrices of the UKF
         """
         # Initialize state covariance matrix P:
-        # TODO: Initialize the state covariance matrix P
-        self.ukf.P = np.diag([0.1, 0.1, 0.1, 0.15, 0.15, 0.15, 0.0005])
+        # TODO: Tune these initial values appropriately. Currently these are
+        #       just guesses
+        self.ukf.P = np.diag([0.1, 0.1, 0.1, 0.2, 0.2, 0.2, 0.0005])
         
         # Initialize the process noise covariance matrix Q:
         # TODO: Tune appropriately. Currently just a guess
         self.ukf.Q = np.diag([0.01, 0.01, 0.01, 1.0, 1.0, 1.0, 0.1])*0.005
         
-        # TODO: Initialize the measurement covariance matrix R, estimating
-        #       variances for each sensor measurement. Refer to the measurement
-        #       vector for the positions of these variances in the matrix. You
-        #       can attempt to estimate the covariances between different sensor
-        #       quantities, or you can choose to simply set the sensor variances
-        #       (i.e., the diagonals of the matrix).
-        self.ukf.R = np.diag([0.010024929458961038, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
-        # TODO: range variance (m^2), determined experimentally in a static
+        # Initialize the measurement covariance matrix R
+        # IR slant range variance (m^2), determined experimentally in a static
         # setup with mean range around 0.335 m:
-        self.measurement_cov_ir = np.array([0.010024929458961038])
-                                            
-        #self.measurement_cov_ir = np.array([2.2221e-05]) was originally given to us but I think that's wrong
+        self.measurement_cov_ir = np.array([2.2221e-05])
+
         self.measurement_cov_optical_flow = np.diag([0.01, 0.01])
         # Estimated standard deviation of 5 cm = 0.05 m ->
         # variance of 0.05^2 = 0.0025
         self.measurement_cov_camera_pose = np.diag([0.0025, 0.0025, 0.0003])
+        self.ukf.R = np.diag([2.2221e-05, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
                 
     def update_input_time(self, msg):
         """
@@ -239,6 +237,7 @@ class UKFStateEstimator7D(object):
         """
         Handle the receipt of an Imu message. Only take the linear acceleration
         along the z-axis.
+        
         """
         if self.in_callback:
             return
@@ -247,12 +246,9 @@ class UKFStateEstimator7D(object):
         # save imu orientation to compensate range measurement for pitch and roll
         self.imu_orientation = data.orientation
 
-        # TODO:  # extract accelerations from data
-        self.last_control_input = np.array([
-        data.linear_acceleration.x,
-        data.linear_acceleration.y,
-        data.linear_acceleration.z])
-        
+        self.last_control_input = np.array([data.linear_acceleration.x,
+                                            data.linear_acceleration.y,
+                                            data.linear_acceleration.z])
         self.angular_velocity = data.angular_velocity
         if not self.ready_to_filter:
             self.initialize_input_time(data)
@@ -277,22 +273,21 @@ class UKFStateEstimator7D(object):
 
         if self.ready_to_filter:
             self.update_input_time(data)
+
             self.last_measurement_vector[0] = tof_height
+
         else:
             self.initialize_input_time(data)
-            # Got a new range reading.
-            # TODO: so update the initial state vector of the UKF
-            self.ukf.x[2] = tof_height
-            self.ukf.x[5] = 0.0  # initialize velocity as 0 m/s
-            #set 3, 4, and 5 to zero:
-            # self.ukf.x[4] = 0
-            # self.ukf.x[5] = 0
+            # Got a raw slant range reading, so update the initial state
+            # vector of the UKF
             
-            # TODO: Update the state covariance matrix to reflect estimated
+            self.ukf.x[2] = tof_height
+            
+            self.ukf.x[5] = 0.0  # initialize velocity as 0 m/s
+            # Update the state covariance matrix to reflect estimated
             # measurement error. Variance of the measurement -> variance of
             # the corresponding state variable
             self.ukf.P[2, 2] = self.measurement_cov_ir[0]
-            
             self.got_ir = True
             self.check_if_ready_to_filter()
         self.in_callback = False
@@ -311,29 +306,18 @@ class UKFStateEstimator7D(object):
         self.in_callback = True
         if self.ready_to_filter:
             self.update_input_time(data)
-            # TODO: store relevant values upon recept of a measurement from
-            #       the camera's optical flow
-            #assuming that the linear velocities are in the twist.linear field:
             self.last_measurement_vector[3] = data.twist.linear.x
             self.last_measurement_vector[4] = data.twist.linear.y
-
-            # Now that a prediction has been formed to bring the current
-            # prior state estimate to the same point in time as the measurement,
-            # perform a measurement update with the most recent optical flow reading
-            self.ukf.update(self.last_measurement_vector)
         else:
             self.initialize_input_time(data)
-            # TODO: Update the initial state vector of the UKF
-            # Assuming zero initial velocities if we have not started filtering yet
-            self.ukf.x[3] = data.twist.linear.x
-            self.ukf.x[4] = data.twist.linear.y
-        
-            # TODO: Initialize the state covariance matrix to reflect
-            # estimated measurement error. Variance of the measurement
-            # -> variance of the corresponding state variable
-            self.ukf.P[3, 3] = self.measurement_cov_optical_flow[0, 0]  # Variance for x velocity
-            self.ukf.P[4, 4] = self.measurement_cov_optical_flow[1, 1]  # Variance for y velocity
-
+            # Update the initial state vector of the UKF
+            self.ukf.x[3] = data.twist.linear.x  # x velocity
+            self.ukf.x[4] = data.twist.linear.y  # y velocity
+            # Update the state covariance matrix to reflect estimated
+            # measurement error. Variance of the measurement -> variance of
+            # the corresponding state variable
+            self.ukf.P[3, 3] = self.measurement_cov_optical_flow[0, 0]
+            self.ukf.P[4, 4] = self.measurement_cov_optical_flow[1, 1]
             self.check_if_ready_to_filter()
         self.in_callback = False
         
@@ -350,57 +334,29 @@ class UKFStateEstimator7D(object):
         if self.in_callback:
             return
         self.in_callback = True
-        
-                ##########################################
-        # TODO: Store relevant values upon receipt of a measurement from the
-        #       camera's pose estimates. These values include position in x and
-        #       y, as well as yaw (again, you will find the tf library useful to
-        #       convert a quaternion into Euler angles)
-        
-        ##########################################
-    
-        # Extract the x and y position from the pose message
-        x_pos = data.pose.position.x
-        y_pos = data.pose.position.y
-
-        # Extract the orientation from the pose message and convert to Euler angles
-        quaternion = (
-            data.pose.orientation.x,
-            data.pose.orientation.y,
-            data.pose.orientation.z,
-            data.pose.orientation.w
-        )
-
-        # TODO: get yaw:
-        _, _, yaw = tf.transformations.euler_from_quaternion(quaternion)
-
+        _, _, yaw = tf.transformations.euler_from_quaternion(
+                                                      [data.pose.orientation.x,
+                                                       data.pose.orientation.y,
+                                                       data.pose.orientation.z,
+                                                       data.pose.orientation.w])
         if self.ready_to_filter:
             self.update_input_time(data)
-            # TODO: Store measurements in self.last_measurement_vector
-            # Store measurements in self.last_measurement_vector
-            self.last_measurement_vector[1] = x_pos
-            self.last_measurement_vector[2] = y_pos
+            self.last_measurement_vector[1] = data.pose.position.x
+            self.last_measurement_vector[2] = data.pose.position.y
             self.last_measurement_vector[5] = yaw
-
-            # Perform a measurement update with the most recent camera pose reading:
-            # self.ukf.update(self.last_measurement_vector)
         else:
             self.initialize_input_time(data)
-            # TODO: Update the initial state vector of the UKF
             # Update the initial state vector of the UKF
-            self.ukf.x[0] = x_pos
-            self.ukf.x[1] = y_pos
+            self.ukf.x[0] = data.pose.position.x
+            self.ukf.x[1] = data.pose.position.y
             self.ukf.x[6] = yaw
-            
-            # TODO: Update the state covariance matrix to reflect estimated
+            # Update the state covariance matrix to reflect estimated
             # measurement error. Variance of the measurement -> variance of
-            # the corresponding state variable:
-            self.ukf.P[0, 0] = self.measurement_cov_camera_pose[0, 0]  # Variance for x position
-            self.ukf.P[1, 1] = self.measurement_cov_camera_pose[1, 1]  # Variance for y position
-            self.ukf.P[6, 6] = self.measurement_cov_camera_pose[2, 2]  # Variance for yaw
-
+            # the corresponding state variable
+            self.ukf.P[0, 0] = self.measurement_cov_camera_pose[0, 0]
+            self.ukf.P[1, 1] = self.measurement_cov_camera_pose[1, 1]
+            self.ukf.P[6, 6] = self.measurement_cov_camera_pose[2, 2]
             self.check_if_ready_to_filter()
-
         self.in_callback = False
             
     def check_if_ready_to_filter(self):
@@ -422,25 +378,12 @@ class UKFStateEstimator7D(object):
         state_msg.header.stamp.nsecs = self.last_time_nsecs
         state_msg.header.frame_id = 'global'
         
-        # TODO:
-        # Convert RPY Euler angles (radians) to a quaternion, using the yaw
-        # estimate from the UKF (informed by measurements from
-        # camera_pose_data_callback) and the roll and pitch values directly from
-        # the IMU, as the IMU implements its own filter on attitude:
-            # Get the roll, pitch from the IMU and yaw from the UKF's state vector
+        # TODO: Consider using roll and pitch values directly from the IMU, as
+        #       the IMU implements its own filter on attitude
+        quaternion = self.get_quaternion_from_yaw(self.ukf.x[6])
         
-        # r, p, _ = self.get_r_p_y()  # IMU's roll and pitch
-        # _, _, y = tf.transformations.euler_from_quaternion([
-        #     self.imu_orientation.x,
-        #     self.imu_orientation.y,
-        #     self.imu_orientation.z,
-        #     self.imu_orientation.w
-        # ])
-        yaw = self.ukf.x[6]  # Yaw from UKF state vector
-
-        quaternion = tf.transformations.quaternion_from_euler(0.0, 0.0, self.ukf.x[6]) #**needs to call camera_pose_data_callback
-        
-        # Get the current state estimate from self.ukf.x
+        # Get the current state estimate from self.ukf.x, and fill the rest of
+        # the message with NaN
         state_msg.pose_with_covariance.pose.position.x = self.ukf.x[0]
         state_msg.pose_with_covariance.pose.position.y = self.ukf.x[1]
         state_msg.pose_with_covariance.pose.position.z = self.ukf.x[2]
@@ -454,6 +397,7 @@ class UKFStateEstimator7D(object):
         state_msg.twist_with_covariance.twist.angular = self.angular_velocity
         
         # Prepare covariance matrices
+        # TODO: Finish populating these matrices, if deemed necessary
         # 36-element array, in a row-major order, according to ROS msg docs
         pose_cov_mat = np.full((36,), np.nan)
         twist_cov_mat = np.full((36,), np.nan)
@@ -466,61 +410,36 @@ class UKFStateEstimator7D(object):
         
         self.state_pub.publish(state_msg)
         
+    def get_quaternion_from_yaw(self, yaw):
+        return tf.transformations.quaternion_from_euler(0.0,
+                                                        0.0,
+                                                        yaw)
+        
     def apply_quaternion_vector_rotation(self, original_vector, yaw):
         """
         Rotate a vector from the drone's body frame to the global frame using
-        quaternion-vector multiplication. Use quaternion-vector multiplication
-        instead of a rotation matrix to rotate the vector. This method should
-        get called in the state transition function to rotate a linear
-        acceleration vector.
-        
-        Computation:
-            q*v*q'
-        where q is the rotation quaternion, v is the vector (a "pure" quaternion
-        with w=0), and q' is the conjugate of the quaternion q
-        
-        
-        original_vector : the 3-element vector representing x, y, and z linear
-                          accelerations in the drone's body frame
-        yaw : the yaw value in the current state vector
-        
-        returns:  a 3-element vector that is the original vector rotated into the
-                  global frame
+        quaternion-vector multiplication
         """
-        # TODO:
-        # With help from the tf library's functions that act on quaternions
-        # (namely, quaternion_multiply and quaternion_conjugate), implement this
-        # method. Make use of the IMU values for roll and pitch, as well as the
-        # input yaw argument that comes from the UKF state vector. Note that a
-        # quaternion is represented as a 4-element vector [x,y,z,w], where x, y,
-        # and z are the imaginary components, and w is the real component.
-        # Assuming roll, pitch from the IMU are accessible as r, p
-        
-        # r, p, _ = self.get_r_p_y()
-        # # Convert yaw, pitch, and roll to a quaternion
-        # q = tf.transformations.quaternion_from_euler(r, p, yaw)
-        # # Convert the original vector to a quaternion with a zero w component
-        # v = np.array([original_vector[0], original_vector[1], original_vector[2], 0])
-        # # Compute the conjugate of the quaternion
-        # q_conjugate = tf.transformations.quaternion_conjugate(q)
-        # # Perform the quaternion multiplication
-        # v_rotated = tf.transformations.quaternion_multiply(
-        #     tf.transformations.quaternion_multiply(q, v), q_conjugate)
-        # # Return the x, y, z components of the rotated vector
-        # return v_rotated[:3]
-
-        quaternion = tf.transformations.quaternion_from_euler(0.0, 0.0, yaw)
-        quaternion_list = list(quaternion)
-
-        quaternion_list[3] = -quaternion_list[3]
-        orig_vector_quaternion = list(original_vector)
-        orig_vector_quaternion.append(0.0)
-
-        product = tf.transformations.quaternion_multiply(quaternion_list, orig_vector_quaternion)
-        conj = tf.transformations.quaternion_conjugate(quaternion_list)
-        rotated = tf.transformations.quaternion_multiply(product, conj)
-
-        return rotated[:3]
+        # Use quaternion-vector multiplication instead of a rotation matrix to
+        # rotate the vector.
+        # This quaternion describes rotation from the global frame to the body
+        # frame, so take the quaternion's inverse by negating its real
+        # component (w)
+        quat_global_to_body = self.get_quaternion_from_yaw(yaw)
+        quat_body_to_global = list(quat_global_to_body) # copy the quaternion
+        quat_body_to_global[3] = -quat_body_to_global[3]
+        original_vector_as_quat = list(original_vector)
+        original_vector_as_quat.append(0.0) # vector as quaternion with w=0
+        # Apply quaternion rotation on a vector: q*v*q', where q is the rotation
+        # quaternion, v is the vector (a "pure" quaternion with w=0), and q' is
+        # the conjugate of the quaternion q
+        original_vector_rotated = tf.transformations.quaternion_multiply(
+            tf.transformations.quaternion_multiply(quat_body_to_global,
+                                                   original_vector_as_quat),
+            tf.transformations.quaternion_conjugate(quat_body_to_global))
+        # Drop the real part w=0
+        original_vector_rotated = original_vector_rotated[:3]
+        return original_vector_rotated
 
     def state_transition_function(self, x, dt, u):
         """
@@ -530,57 +449,35 @@ class UKFStateEstimator7D(object):
         x : current state. A NumPy array
         dt : time step. A float
         u : control input. A NumPy array
-        
-        returns: A NumPy array that is the prior state estimate. Array
-                 dimensions must be the same as the state vector x.
         """
-        # TODO: Implement this method, following the math that you derived. Make
-        #       sure to use apply_quaternion_vector_rotation to get into the
-        #       global frame.
-        # Extract state components for readability
-        pos = x[:3]
-        vel = x[3:6]
-        yaw = x[6]
-
-        # Apply the quaternion rotation to the control input to get acceleration in the global frame
-        acc_global = self.apply_quaternion_vector_rotation(u, yaw)
-
-        # State transition logic: 
-        # New position is old position plus velocity times dt plus 0.5 times acceleration times dt squared
-        # New velocity is old velocity plus acceleration times dt
-        dt_2 = dt**2.0
-
-        state_arr = np.array([x[3] * dt + 0.5*acc_global[0]*dt_2, x[4] * dt + 0.5*acc_global[1]*dt_2, x[5] * dt + 0.5*acc_global[2]*dt_2, acc_global[0]*dt_2, acc_global[1]*dt_2, acc_global[2]*dt_2, 0.0])
-
-        return x + state_arr
+        accels_global_frame = self.apply_quaternion_vector_rotation(u, x[6])
+        
+        dt2 = dt**2.0
+        return x + np.array([x[3]*dt + 0.5*accels_global_frame[0]*dt2,
+                             x[4]*dt + 0.5*accels_global_frame[1]*dt2,
+                             x[5]*dt + 0.5*accels_global_frame[2]*dt2,
+                             accels_global_frame[0]*dt,
+                             accels_global_frame[1]*dt,
+                             accels_global_frame[2]*dt,
+                             0.0])
         
     def measurement_function(self, x):
         """
-        Transform the state x into measurement space.
+        Transform the state x into measurement space. In this simple model, we
+        assume that the range measurement corresponds exactly to position along
+        the z-axis, as we are assuming there is no pitch and roll.
         
         x : current state. A NumPy array
         """
-        # TODO: Implement this method, following the math that you derived.
-        # Assuming the state vector is structured as:
-        # x = [x, y, z, x_vel, y_vel, z_vel, yaw]
-        # And the measurement vector is structured as:
-        # z = [slant_range, x, y, x_vel, y_vel, yaw]
-        
-        # For the slant range, we're assuming it's directly measured as the z position
-        # If your ToF sensor measures the slant range at an angle, you'll need to
-        # adjust this to account for the sensor's orientation relative to the drone's body
-        #slant_range = x[2]  # Directly taking the z position as the slant range
-        
-        # The position measurements are directly the x and y states
-        h = np.array([[0, 0, 1, 0, 0, 0, 0],
-                     [1, 0, 0, 0, 0, 0, 0],
-                     [0, 1, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 1, 0, 0, 0],
-                     [0, 0, 0, 0, 1, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 1]])
-        
-        return np.dot(h, x)
-
+        H = np.array([[0, 0, 1, 0, 0, 0, 0],
+                      [1, 0, 0, 0, 0, 0, 0],
+                      [0, 1, 0, 0, 0, 0, 0],
+                      [0, 0, 0, 1, 0, 0, 0],
+                      [0, 0, 0, 0, 1, 0, 0],
+                      [0, 0, 0, 0, 0, 0, 1]])
+        result = np.dot(H, x)
+        return result
+    
     def start_loop(self):
         """
         Begin the UKF's loop of predicting and updating. Publish a state
@@ -598,7 +495,6 @@ class UKFStateEstimator7D(object):
                 # IR range reading
                 self.ukf.update(self.last_measurement_vector)
                 self.publish_current_state()
-                print("publishing values")
             rate.sleep()
         
         
@@ -645,8 +541,8 @@ def main():
         print('{} node terminating.'.format(se.node_name))
         print('Most recent state vector:')
         print(se.ukf.x)
-        # print('Most recent state covariance matrix:')
-        # print(se.ukf.P)
+        # print 'Most recent state covariance matrix:'
+        # print se.ukf.P
         
 if __name__ == '__main__':
     main()
