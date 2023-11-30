@@ -451,13 +451,16 @@ class UKFStateEstimator7D(object):
         accelerations = self.apply_quaternion_vector_rotation(u, x[6])
         
         dt2 = dt**2.0
-        return x + np.array([x[3]*dt + 0.5*accelerations[0]*dt2,
+        
+        total = x + np.array([x[3]*dt + 0.5*accelerations[0]*dt2,
                              x[4]*dt + 0.5*accelerations[1]*dt2,
                              x[5]*dt + 0.5*accelerations[2]*dt2,
                              accelerations[0]*dt,
                              accelerations[1]*dt,
                              accelerations[2]*dt,
                              0.0])
+
+        return total
         
     def measurement_function(self, x):
         """
