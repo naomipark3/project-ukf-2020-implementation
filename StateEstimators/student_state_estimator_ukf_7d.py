@@ -573,10 +573,10 @@ class UKFStateEstimator7D(object):
         
         # The position measurements are directly the x and y states
         h = np.array([[0, 0, 1, 0, 0, 0, 0],
-                     [1, 0, 0, 0, 0, 0, 0]
-                     [0, 1, 0, 0, 0, 0, 0]
-                     [0, 0, 0, 1, 0, 0, 0]
-                     [0, 0, 0, 0, 1, 0, 0]
+                     [1, 0, 0, 0, 0, 0, 0],
+                     [0, 1, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0],
                      [0, 0, 0, 0, 0, 0, 1]])
         
         return np.dot(h, x)
