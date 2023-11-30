@@ -170,7 +170,7 @@ class UKFStateEstimator7D(object):
         self.ukf.R = np.diag([0.010024929458961038, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
         # TODO: range variance (m^2), determined experimentally in a static
         # setup with mean range around 0.335 m:
-        self.measurement_cov_ir = np.array([0.01])
+        self.measurement_cov_ir = np.array([0.010024929458961038])
                                             
         #self.measurement_cov_ir = np.array([2.2221e-05]) was originally given to us but I think that's wrong
         self.measurement_cov_optical_flow = np.diag([0.01, 0.01])
