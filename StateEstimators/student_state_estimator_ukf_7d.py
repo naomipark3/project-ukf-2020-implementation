@@ -174,7 +174,7 @@ class UKFStateEstimator7D(object):
         # Estimated standard deviation of 5 cm = 0.05 m ->
         # variance of 0.05^2 = 0.0025
         self.measurement_cov_camera_pose = np.diag([0.0025, 0.0025, 0.0003])
-        self.ukf.R = np.diag([0.01, 0.0025, 0.0025, 0.01, 0.01, 0.0003])
+        self.ukf.R = np.diag([0.01, 0.0025, 0.0025, 0.01, 0.01, 0.0003]) #set variance to be 0.01
                 
     def update_input_time(self, msg):
         """
@@ -328,8 +328,6 @@ class UKFStateEstimator7D(object):
             - x (meters)
             - y (meters)
             - yaw (radians)
-        
-        This method PREDICTS with the most recent control input and UPDATES.
         """
         if self.in_callback:
             return
@@ -425,21 +423,21 @@ class UKFStateEstimator7D(object):
         # This quaternion describes rotation from the global frame to the body
         # frame, so take the quaternion's inverse by negating its real
         # component (w)
-        quat_global_to_body = self.get_quaternion_from_yaw(yaw)
-        quat_body_to_global = list(quat_global_to_body) # copy the quaternion
-        quat_body_to_global[3] = -quat_body_to_global[3]
-        original_vector_as_quat = list(original_vector)
-        original_vector_as_quat.append(0.0) # vector as quaternion with w=0
+        global_quaternion = self.get_quaternion_from_yaw(yaw)
+        body_quaternion = list(global_quaternion) # copy the quaternion
+        body_quaternion[3] = -body_quaternion[3]
+        original_vector_quaternion = list(original_vector)
+        original_vector_quaternion.append(0.0) # vector as quaternion with w=0
         # Apply quaternion rotation on a vector: q*v*q', where q is the rotation
         # quaternion, v is the vector (a "pure" quaternion with w=0), and q' is
         # the conjugate of the quaternion q
-        original_vector_rotated = tf.transformations.quaternion_multiply(
-            tf.transformations.quaternion_multiply(quat_body_to_global,
-                                                   original_vector_as_quat),
-            tf.transformations.quaternion_conjugate(quat_body_to_global))
+        rotated = tf.transformations.quaternion_multiply(
+            tf.transformations.quaternion_multiply(body_quaternion,
+                                                   original_vector_quaternion),
+            tf.transformations.quaternion_conjugate(body_quaternion))
         # Drop the real part w=0
-        original_vector_rotated = original_vector_rotated[:3]
-        return original_vector_rotated
+        rotated = rotated[:3]
+        return rotated
 
     def state_transition_function(self, x, dt, u):
         """
@@ -450,15 +448,15 @@ class UKFStateEstimator7D(object):
         dt : time step. A float
         u : control input. A NumPy array
         """
-        accels_global_frame = self.apply_quaternion_vector_rotation(u, x[6])
+        accelerations = self.apply_quaternion_vector_rotation(u, x[6])
         
         dt2 = dt**2.0
-        return x + np.array([x[3]*dt + 0.5*accels_global_frame[0]*dt2,
-                             x[4]*dt + 0.5*accels_global_frame[1]*dt2,
-                             x[5]*dt + 0.5*accels_global_frame[2]*dt2,
-                             accels_global_frame[0]*dt,
-                             accels_global_frame[1]*dt,
-                             accels_global_frame[2]*dt,
+        return x + np.array([x[3]*dt + 0.5*accelerations[0]*dt2,
+                             x[4]*dt + 0.5*accelerations[1]*dt2,
+                             x[5]*dt + 0.5*accelerations[2]*dt2,
+                             accelerations[0]*dt,
+                             accelerations[1]*dt,
+                             accelerations[2]*dt,
                              0.0])
         
     def measurement_function(self, x):
@@ -475,8 +473,7 @@ class UKFStateEstimator7D(object):
                       [0, 0, 0, 1, 0, 0, 0],
                       [0, 0, 0, 0, 1, 0, 0],
                       [0, 0, 0, 0, 0, 0, 1]])
-        result = np.dot(H, x)
-        return result
+        return np.dot(H, x)
     
     def start_loop(self):
         """
